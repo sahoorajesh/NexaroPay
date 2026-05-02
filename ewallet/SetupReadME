@@ -37,7 +37,7 @@ ii) Format Log Directories :- .\bin\kafka-storage.bat format --standalone -t $KA
 
 b. Run kafka server using :- .\bin\windows\kafka-server-start.bat .\config\server.properties
 c. To see what is being pushed in kafka run this command in new tab:-
-.\windows\kafka-console-consumer.bat --topic USER-CREATED --bootstrap-server 0.0.0.0:9092,0.0.0.0:9093 --from-beginning
+.\windows\kafka-console-consumer.bat --topic USER-REGISTERED --bootstrap-server 0.0.0.0:9092,0.0.0.0:9093 --from-beginning
 
 The name of the topic is defined in application.properties
 
