@@ -26,6 +26,7 @@
 		<module>walletService</module>
 		<module>transactionService</module>
 		<module>notificationService</module>
+		<module>CommonUtils</module>
 	</modules>
 	<scm>
 		<connection/>
@@ -79,6 +80,11 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc-test</artifactId>
 			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.nexaroPay</groupId>
+			<artifactId>CommonUtils</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
 		</dependency>
 	</dependencies>
 

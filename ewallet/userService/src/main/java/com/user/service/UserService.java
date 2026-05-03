@@ -1,10 +1,9 @@
 package com.user.service;
 
-
-import com.user.dto.UserCreatedPayload;
 import com.user.dto.UserDTO;
 import com.user.entity.User;
 import com.user.repository.UserRepository;
+import com.util.kafka.UserCreatedPayload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,4 +1,4 @@
-package com.user.dto;
+package com.util.kafka;
 
 import lombok.*;
 

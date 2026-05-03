@@ -5,9 +5,9 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class walletApp {
+public class WalletApp {
     public static void main(String[] args) {
-        SpringApplication.run(walletApp.class, args);
+        SpringApplication.run(WalletApp.class, args);
 
     }
 }
