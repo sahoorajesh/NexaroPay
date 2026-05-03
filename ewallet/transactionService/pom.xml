@@ -9,4 +9,11 @@
     <artifactId>transactionService</artifactId>
     <name>Archetype - transactionService</name>
     <url>http://maven.apache.org</url>
+    <dependencies>
+        <dependency>
+            <groupId>com.nexaroPay</groupId>
+            <artifactId>CommonUtils</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
 </project>

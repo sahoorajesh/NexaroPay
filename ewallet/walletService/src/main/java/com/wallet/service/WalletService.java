@@ -1,5 +1,7 @@
 package com.wallet.service;
 
+import com.util.kafka.TxnCompletedPayload;
+import com.util.kafka.TxnInitPayload;
 import com.util.kafka.UserCreatedPayload;
 import com.util.kafka.WalletUpdatedPayload;
 import com.wallet.entity.Wallet;
@@ -27,6 +29,9 @@ public class WalletService {
     @Value("${wallet.updated.topic}")
     private String walletUpdatedTopic;
 
+    @Value("${txn.completed.topic}")
+    private String txnCompletedTopic;
+
     @Autowired
     private KafkaTemplate<String, Object> kafkaTemplate;
 
@@ -50,6 +55,57 @@ public class WalletService {
                 .send(walletUpdatedTopic, walletUpdatedPayload.getUserEmail(),walletUpdatedPayload);
 
         LOGGER.info("Sent message to Kafka topic: {}", future.get());
+
+    }
+
+    @Transactional
+    public void updateWalletForInitTxn(TxnInitPayload txnInitPayload) throws ExecutionException, InterruptedException {
+        Wallet fromWallet = walletRepository.findByUserId(txnInitPayload.getFromUserId());
+        Wallet toWallet = walletRepository.findByUserId(txnInitPayload.getToUserId());
+        Double amount = txnInitPayload.getAmount();
+        TxnCompletedPayload txnCompletedPayload = new TxnCompletedPayload();
+        txnCompletedPayload.setTxnId(txnInitPayload.getTransactionId());
+        if(fromWallet.getBalance() < amount)
+        {
+            txnCompletedPayload.setSuccess(Boolean.FALSE);
+            txnCompletedPayload.setReason("Low balance");
+        } else
+        {
+
+            fromWallet.setBalance(fromWallet.getBalance() - amount);
+            toWallet.setBalance(toWallet.getBalance() + amount);
+            txnCompletedPayload.setSuccess(Boolean.TRUE);
+            txnCompletedPayload.setReason("Amount " + amount + " INR has been transferred from " + txnInitPayload.getFromUserId());
+            WalletUpdatedPayload  fromWalletUpdatedPayload =
+                    new WalletUpdatedPayload(
+                            fromWallet.getUserId(),
+                            fromWallet.getWalletId(),
+                            fromWallet.getUserEmail(),
+                            fromWallet.getBalance()
+                    );
+
+            WalletUpdatedPayload  toWalletUpdatedPayload =
+                    new WalletUpdatedPayload(
+                            toWallet.getUserId(),
+                            toWallet.getWalletId(),
+                            toWallet.getUserEmail(),
+                            toWallet.getBalance()
+                    );
+            Future<SendResult<String,Object>> fromWalletFuture = kafkaTemplate
+                    .send(walletUpdatedTopic, fromWalletUpdatedPayload.getUserEmail(),fromWalletUpdatedPayload);
+
+            LOGGER.info("Sent message to Wallet updated topic for From Wallet: {}", fromWalletFuture.get());
+
+            Future<SendResult<String,Object>> toWalletFuture = kafkaTemplate
+                    .send(walletUpdatedTopic, toWalletUpdatedPayload.getUserEmail(),toWalletUpdatedPayload);
+
+            LOGGER.info("Sent message to Wallet updated topic for To Wallet: {}", toWalletFuture.get());
+        }
+
+        Future<SendResult<String,Object>> txnCompletedFuture = kafkaTemplate
+                .send(txnCompletedTopic, txnInitPayload.getFromUserId().toString(),txnCompletedPayload);
+
+        LOGGER.info("Sent message to Transaction Completed topic: {}", txnCompletedFuture.get());
 
     }
 }

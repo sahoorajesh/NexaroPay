@@ -4,6 +4,7 @@ import com.user.dto.UserDTO;
 import com.user.entity.User;
 import com.user.repository.UserRepository;
 import com.util.kafka.UserCreatedPayload;
+import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +34,7 @@ public class UserService {
     @Value("${user.created.topic}")
     private String userCreatedTopic;
 
+    @Transactional
     public long createUser(UserDTO userDTO) throws ExecutionException, InterruptedException {
 
         User user = User.builder()
