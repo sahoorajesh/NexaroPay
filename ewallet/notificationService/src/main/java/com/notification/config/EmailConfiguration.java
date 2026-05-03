@@ -19,8 +19,7 @@ public class EmailConfiguration {
         JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
         mailSender.setHost("smtp.gmail.com");
         mailSender.setPort(587);
-//        mailSender.setProtocol("smtps");
-        mailSender.setUsername("rajsahoo7350@gmail.com");
+        mailSender.setUsername("nexaroPay.ewallet@gmail.com");
         mailSender.setPassword(emailPassword);
         Properties props = mailSender.getJavaMailProperties();
         props.put("mail.smtp.starttls.enable", true);
