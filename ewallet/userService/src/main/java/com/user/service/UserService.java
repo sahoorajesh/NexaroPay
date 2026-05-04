@@ -7,6 +7,7 @@ import com.util.kafka.UserCreatedPayload;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -34,6 +35,19 @@ public class UserService {
     @Value("${user.created.topic}")
     private String userCreatedTopic;
 
+    public UserDTO getUserDetails(Long id){
+        String key = "user" + id;
+        UserDTO userDTO = redisTemplate.opsForValue().get(key);
+        if(userDTO == null){
+            User user = userRepository.findById(id).get();
+            userDTO = new UserDTO();
+            userDTO.setEmail(user.getEmail());
+            userDTO.setName(user.getName());
+            userDTO.setPhone(user.getPhone());
+            userDTO.setKycNumber(user.getKycNumber());
+        }
+        return userDTO;
+    }
     @Transactional
     public long createUser(UserDTO userDTO) throws ExecutionException, InterruptedException {
 
@@ -49,6 +63,7 @@ public class UserService {
                 .userName(user.getName())
                 .userEmail(user.getEmail())
                 .userId(user.getId())
+                .requestId(MDC.get("requestId"))
                 .build();
         Future<SendResult<String,Object>> future = kafkaTemplate
                 .send(userCreatedTopic, userCreatedPayload.getUserEmail(),userCreatedPayload);

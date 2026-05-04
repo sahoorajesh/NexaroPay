@@ -7,6 +7,7 @@ import com.util.kafka.TxnCompletedPayload;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -28,7 +29,7 @@ public class TransactionKafkaConsumerTopic {
     public void consumeCompletedTxnTopic(ConsumerRecord<?, ?> record) throws ExecutionException, InterruptedException {
         TxnCompletedPayload  txnCompletedPayload = objectMapper.readValue(record.value().toString(), TxnCompletedPayload.class);
         LOGGER.info("Received from Kafka for Completed Transaction: {}", txnCompletedPayload);
-
+        MDC.put("requestId", txnCompletedPayload.getRequestId());
         Transaction transaction = transactionRepository.findByTxnId(txnCompletedPayload.getTxnId());
         if(!txnCompletedPayload.getSuccess()){
             transaction.setStatus(TransactionStatusEnum.FAILED);
@@ -38,6 +39,6 @@ public class TransactionKafkaConsumerTopic {
             transaction.setStatus(TransactionStatusEnum.SUCCESS);
         }
         transactionRepository.save(transaction);
-
+        MDC.clear();
     }
 }

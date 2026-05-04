@@ -11,4 +11,5 @@ public class TxnCompletedPayload {
     private String txnId;
     private Boolean success;
     private String reason;
+    private String requestId;
 }

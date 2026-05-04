@@ -9,6 +9,7 @@ import com.util.kafka.TxnInitPayload;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -53,6 +54,7 @@ public class TransactionService {
                 .fromUserId(txn.getFromUserId())
                 .toUserId(txn.getToUserId())
                 .amount(txn.getAmount())
+                .requestId(MDC.get("requestId"))
                 .build();
 
         Future<SendResult<String,Object>> future = kafkaTemplate

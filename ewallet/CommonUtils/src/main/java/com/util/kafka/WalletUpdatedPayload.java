@@ -20,4 +20,7 @@ public class WalletUpdatedPayload implements Serializable {
     private String userEmail;
 
     private Double newBalance;
+
+    private String requestId;
+
 }

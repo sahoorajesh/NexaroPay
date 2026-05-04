@@ -6,6 +6,7 @@ import com.wallet.service.WalletService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -25,16 +26,19 @@ public class WalletKafkaConsumerConfig {
     @KafkaListener(topics = "${user.created.topic}", groupId = "wallet")
     public void consumeUserCreatedTopic(ConsumerRecord<?, ?> record) throws ExecutionException, InterruptedException {
         UserCreatedPayload userCreatedPayload = objectMapper.readValue(record.value().toString(), UserCreatedPayload.class);
+        MDC.put("requestId", userCreatedPayload.getRequestId());
         logger.info("Received from Kafka for User Creation: {}", userCreatedPayload);
         walletService.createWallet(userCreatedPayload);
-
+        MDC.clear();
     }
 
     @KafkaListener(topics = "${txn.init.topic}", groupId = "wallet")
     public void consumeInitTxnTopic(ConsumerRecord<?, ?> record) throws ExecutionException, InterruptedException {
         TxnInitPayload txnInitPayload = objectMapper.readValue(record.value().toString(), TxnInitPayload.class);
+        MDC.put("requestId", txnInitPayload.getRequestId());
         logger.info("Received from Kafka for Init Transaction: {}", txnInitPayload);
         walletService.updateWalletForInitTxn(txnInitPayload);
         logger.info("Updated wallet for Init Transaction and marked the status: {}", txnInitPayload);
+        MDC.clear();
     }
 }

@@ -13,5 +13,6 @@ public class TxnInitPayload {
     private Long fromUserId;
     private Long toUserId;
     private Double amount;
+    private String requestId;
 
 }

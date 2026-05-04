@@ -4,11 +4,13 @@ import com.util.kafka.TxnCompletedPayload;
 import com.util.kafka.TxnInitPayload;
 import com.util.kafka.UserCreatedPayload;
 import com.util.kafka.WalletUpdatedPayload;
+import com.wallet.dto.WalletInfoDTO;
 import com.wallet.entity.Wallet;
 import com.wallet.repository.WalletRepository;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -49,6 +51,7 @@ public class WalletService {
                 .walletId(wallet.getWalletId())
                 .userEmail(wallet.getUserEmail())
                 .newBalance(wallet.getBalance())
+                .requestId(userCreatedPayload.getRequestId())
                 .build();
         
         Future<SendResult<String,Object>> future = kafkaTemplate
@@ -58,6 +61,16 @@ public class WalletService {
 
     }
 
+    public WalletInfoDTO getWalletDetails(Long userId){
+
+        Wallet wallet = walletRepository.findByUserId(userId);
+        WalletInfoDTO infoDTO = new WalletInfoDTO();
+        infoDTO.setWalletId(wallet.getWalletId());
+        infoDTO.setBalance(wallet.getBalance());
+        infoDTO.setUserId(wallet.getUserId());
+
+        return infoDTO;
+    }
     @Transactional
     public void updateWalletForInitTxn(TxnInitPayload txnInitPayload) throws ExecutionException, InterruptedException {
         Wallet fromWallet = walletRepository.findByUserId(txnInitPayload.getFromUserId());
@@ -65,6 +78,7 @@ public class WalletService {
         Double amount = txnInitPayload.getAmount();
         TxnCompletedPayload txnCompletedPayload = new TxnCompletedPayload();
         txnCompletedPayload.setTxnId(txnInitPayload.getTransactionId());
+        txnCompletedPayload.setRequestId(txnInitPayload.getRequestId());
         if(fromWallet.getBalance() < amount)
         {
             txnCompletedPayload.setSuccess(Boolean.FALSE);
@@ -81,7 +95,8 @@ public class WalletService {
                             fromWallet.getUserId(),
                             fromWallet.getWalletId(),
                             fromWallet.getUserEmail(),
-                            fromWallet.getBalance()
+                            fromWallet.getBalance(),
+                            MDC.get("requestId")
                     );
 
             WalletUpdatedPayload  toWalletUpdatedPayload =
@@ -89,7 +104,8 @@ public class WalletService {
                             toWallet.getUserId(),
                             toWallet.getWalletId(),
                             toWallet.getUserEmail(),
-                            toWallet.getBalance()
+                            toWallet.getBalance(),
+                            MDC.get("requestId")
                     );
             Future<SendResult<String,Object>> fromWalletFuture = kafkaTemplate
                     .send(walletUpdatedTopic, fromWalletUpdatedPayload.getUserEmail(),fromWalletUpdatedPayload);
