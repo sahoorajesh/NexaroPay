@@ -5,6 +5,7 @@ import com.util.kafka.WalletUpdatedPayload;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -25,6 +26,7 @@ public class NotificationKafkaConsumer {
     @KafkaListener(topics = "${user.created.topic}", groupId = "email")
     public void consumeUserCreatedTopic(ConsumerRecord<?,?> payload) {
         UserCreatedPayload  userCreatedPayload = mapper.readValue(payload.value().toString(), UserCreatedPayload.class);
+        MDC.put("requestId", userCreatedPayload.getRequestId());
         LOGGER.info("Received user created payload: {}", userCreatedPayload);
         SimpleMailMessage mailMessage = new SimpleMailMessage();
         mailMessage.setFrom("nexaroPay.ewallet@gmail.com");
@@ -34,11 +36,13 @@ public class NotificationKafkaConsumer {
         mailMessage.setCc("admin.nexaroPay@yopmail.com");
         mailSender.send(mailMessage);
         LOGGER.info("Mail Sent Successfully");
+        MDC.clear();
     }
 
     @KafkaListener(topics = "${wallet.updated.topic}", groupId = "email")
     public void consumeWalletUpdatedTopic(ConsumerRecord<?,?> payload) {
         WalletUpdatedPayload walletUpdatedPayload = mapper.readValue(payload.value().toString(), WalletUpdatedPayload.class);
+        MDC.put("requestId", walletUpdatedPayload.getRequestId());
         LOGGER.info("Received Wallet Updated payload: {}", walletUpdatedPayload);
         SimpleMailMessage mailMessage = new SimpleMailMessage();
         mailMessage.setFrom("nexaroPay.ewallet@gmail.com");
@@ -48,5 +52,6 @@ public class NotificationKafkaConsumer {
         mailMessage.setCc("admin.nexaroPay@yopmail.com");
         mailSender.send(mailMessage);
         LOGGER.info("Wallet Updated Mail Sent Successfully");
+        MDC.clear();
     }
 }
