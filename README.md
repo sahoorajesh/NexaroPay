@@ -1,0 +1,342 @@
+# NexaroPay eWallet API Documentation
+
+This repo contains multiple Spring Boot services. Each service runs on its own port (from `application.properties`) and exposes endpoints under the controller `@RequestMapping` paths.
+
+All JSON examples below use the exact DTO field names from the code.
+
+## User Service (port 8091)
+
+Base URL: `http://localhost:8091`
+
+### Create User
+
+`POST /user-service/user`
+
+Request body (JSON) (`UserDTO`):
+```json
+{
+  "name": "Rajesh Kumar",
+  "email": "rajesh@example.com",
+  "phone": "9999999999",
+  "kycNumber": "KYC123456"
+}
+```
+
+Response:
+`200 OK` (body is a `long` userId)
+```json
+1
+```
+
+curl:
+```bash
+curl -X POST "http://localhost:8091/user-service/user" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name":"Rajesh Kumar",
+    "email":"rajesh@example.com",
+    "phone":"9999999999",
+    "kycNumber":"KYC123456"
+  }'
+```
+
+### Get User Details
+
+`GET /user-service/user-details/{userId}`
+
+Path params:
+- `userId` (number)
+
+Response:
+`200 OK` (`UserDTO`)
+```json
+{
+  "name": "Rajesh Kumar",
+  "email": "rajesh@example.com",
+  "phone": "9999999999",
+  "kycNumber": "KYC123456"
+}
+```
+
+curl:
+```bash
+curl "http://localhost:8091/user-service/user-details/1"
+```
+
+## Wallet Service (port 8092)
+
+Base URL: `http://localhost:8092`
+
+### Get Wallet Details
+
+`GET /wallet-service/wallet-details/{userId}`
+
+Path params:
+- `userId` (number)
+
+Response:
+`200 OK` (`WalletInfoDTO`)
+```json
+{
+  "walletId": 10,
+  "userId": 1,
+  "balance": 2500.0
+}
+```
+
+curl:
+```bash
+curl "http://localhost:8092/wallet-service/wallet-details/1"
+```
+
+### Check Wallet Balance
+
+`GET /wallet-service/check-balance/{userId}`
+
+Path params:
+- `userId` (number)
+
+Response:
+`200 OK` (`WalletInfoDTO`)
+```json
+{
+  "walletId": 10,
+  "userId": 1,
+  "balance": 2500.0
+}
+```
+
+curl:
+```bash
+curl "http://localhost:8092/wallet-service/check-balance/1"
+```
+
+### Add Money (Initiate Payment Gateway Flow)
+
+`POST /wallet-service/add-money`
+
+Request body (JSON) (`AddMoneyReq`):
+```json
+{
+  "amount": 100.0,
+  "userId": 1,
+  "merchantId": 1
+}
+```
+
+Notes:
+- In the current implementation, `merchantId` is overwritten in code to `1L` before calling the payment gateway.
+
+Response:
+`200 OK` (`AddMoneyResponse`)
+```json
+{
+  "url": "http://localhost:9090/payment-page/<txnId>",
+  "txnId": "PG_TXN_123"
+}
+```
+
+curl:
+```bash
+curl -X POST "http://localhost:8092/wallet-service/add-money" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "amount":100.0,
+    "userId":1,
+    "merchantId":1
+  }'
+```
+
+### Process Payment (Finalize Wallet Flow Using Payment Gateway Txn Id)
+
+`GET /wallet-service/process-payment/{pgTxnId}`
+
+Path params:
+- `pgTxnId` (string)
+
+Response:
+`200 OK` (plain string)
+```json
+"OK"
+```
+
+curl:
+```bash
+curl "http://localhost:8092/wallet-service/process-payment/PG_TXN_123"
+```
+
+## Transaction Service (port 8094)
+
+Base URL: `http://localhost:8094`
+
+### Initiate Transfer
+
+`POST /transaction-service/transfer`
+
+Request body (JSON) (`TransactionRequestDTO`):
+```json
+{
+  "toUserId": 2,
+  "fromUserId": 1,
+  "amount": 50.0,
+  "comment": "Dinner split"
+}
+```
+
+Response:
+`202 Accepted` (body is a transaction id string; may be `null` on error in current implementation)
+```json
+"TXN_123"
+```
+
+curl:
+```bash
+curl -X POST "http://localhost:8094/transaction-service/transfer" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "toUserId":2,
+    "fromUserId":1,
+    "amount":50.0,
+    "comment":"Dinner split"
+  }'
+```
+
+### Get Transaction Status
+
+`GET /transaction-service/status/{txnId}`
+
+Path params:
+- `txnId` (string)
+
+Response:
+`200 OK` (`TransactionStatusDTO`)
+```json
+{
+  "status": "SUCCESS",
+  "reason": "OK"
+}
+```
+
+curl:
+```bash
+curl "http://localhost:8094/transaction-service/status/TXN_123"
+```
+
+## Payment Gateway Service (port 9090)
+
+Base URL: `http://localhost:9090`
+
+### Register Merchant
+
+`POST /merchant-service/register-merchant`
+
+Request body (JSON) (`MerchantDetailsDTO`):
+```json
+{
+  "merchantKey": "mkey_abc",
+  "name": "Demo Merchant",
+  "email": "merchant@example.com",
+  "statusWebhook": "http://localhost:8080/webhook/pg-status",
+  "redirectionUrl": "http://localhost:3000/pg-return"
+}
+```
+
+Response:
+`200 OK` (body is a `long` merchantId)
+```json
+1
+```
+
+curl:
+```bash
+curl -X POST "http://localhost:9090/merchant-service/register-merchant" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "merchantKey":"mkey_abc",
+    "name":"Demo Merchant",
+    "email":"merchant@example.com",
+    "statusWebhook":"http://localhost:8080/webhook/pg-status",
+    "redirectionUrl":"http://localhost:3000/pg-return"
+  }'
+```
+
+### Init Payment
+
+`POST /pg-service/init-payment`
+
+Request body (JSON) (`PaymentPageRequest`):
+```json
+{
+  "merchantId": 1,
+  "merchantKey": "mkey_abc",
+  "amount": 100.0,
+  "orderId": "ORDER_001",
+  "userId": 1
+}
+```
+
+Response:
+`200 OK` (`PaymentInitResponse`)
+```json
+{
+  "url": "http://localhost:9090/payment-page/<txnId>",
+  "txnId": "PG_TXN_123"
+}
+```
+
+curl:
+```bash
+curl -X POST "http://localhost:9090/pg-service/init-payment" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "merchantId":1,
+    "merchantKey":"mkey_abc",
+    "amount":100.0,
+    "orderId":"ORDER_001",
+    "userId":1
+  }'
+```
+
+### Payment Status
+
+`GET /pg-service/payment-status/{txnId}`
+
+Path params:
+- `txnId` (string)
+
+Response:
+`200 OK` (`TransactionDetailDto`)
+```json
+{
+  "status": "SUCCESS",
+  "userId": 1,
+  "amount": 100.0
+}
+```
+
+curl:
+```bash
+curl "http://localhost:9090/pg-service/payment-status/PG_TXN_123"
+```
+
+### Do Payment (Redirect)
+
+`POST /pg-service/doPayment/{txnId}`
+
+Path params:
+- `txnId` (string)
+
+Response:
+`302 Found` with `Location` header set to the next URL.
+
+curl (show redirect headers):
+```bash
+curl -i -X POST "http://localhost:9090/pg-service/doPayment/PG_TXN_123"
+```
+
+### Payment Page (HTML, not JSON)
+
+`GET /payment-page/{txnId}`
+
+Purpose:
+- Returns a server-rendered HTML page (`paymentpage.html`) that shows merchant name, amount, and submits to `/pg-service/doPayment/{txnId}`.
