@@ -1,0 +1,129 @@
+.appPage {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 18px 16px 28px;
+  display: grid;
+  gap: 14px;
+}
+
+.appTitleRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.appTitle {
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.appSub {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.panel {
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  border-radius: 10px;
+  padding: 14px;
+  box-shadow: var(--shadow);
+}
+
+.panelHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.panelTitle {
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 820px) {
+  .grid2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.input {
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(255, 255, 255, 0.86);
+  padding: 0 10px;
+  outline: none;
+  color: var(--text);
+}
+
+html[data-theme="dark"] .input {
+  background: rgba(2, 6, 23, 0.38);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.input:focus {
+  border-color: rgba(56, 189, 248, 0.45);
+  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.14);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.kv {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+}
+.kv:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.k {
+  font-size: 12px;
+  color: var(--muted);
+}
+.v {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.monoBox {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(148, 163, 184, 0.06);
+  overflow: auto;
+}
+

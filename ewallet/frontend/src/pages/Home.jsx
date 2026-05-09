@@ -3,7 +3,9 @@ import { Link } from "react-router-dom";
 import Shell from "../components/layout/Shell.jsx";
 import heroWalletUrl from "../assets/hero-wallet.svg";
 import Carousel from "../components/ui/Carousel.jsx";
-import OfferArt from "../components/ui/OfferArt.jsx";
+import artPay from "../assets/carousel-pay.svg";
+import artSplit from "../assets/carousel-split.svg";
+import artStatus from "../assets/carousel-status.svg";
 import "./home.css";
 
 function readSession() {
@@ -133,24 +135,34 @@ export default function Home() {
               id: "q1",
               title: "Easily pay and receive money",
               body: "Send or request payments seamlessly and keep your wallet clean and organized.",
-              art: "a",
+              img: artPay,
             },
             {
               id: "q2",
               title: "Split bills with friends",
               body: "Divide expenses, track progress, and settle up without the back-and-forth.",
-              art: "b",
+              img: artSplit,
             },
             {
               id: "q3",
               title: "Clear status, fewer surprises",
               body: "Know what’s happening with each action with friendly confirmations.",
-              art: "c",
+              img: artStatus,
             },
           ]}
           render={(it) => (
             <article className="qCard">
-              <OfferArt variant={it.art} />
+              <img
+                src={it.img}
+                alt=""
+                style={{
+                  width: "100%",
+                  height: 190,
+                  objectFit: "cover",
+                  borderRadius: 12,
+                  border: "1px solid var(--border)",
+                }}
+              />
               <div className="qCard__content">
                 <div className="qCard__title">{it.title}</div>
                 <div className="qCard__body">{it.body}</div>
@@ -174,33 +186,43 @@ export default function Home() {
               tag: "Popular",
               title: "Zero commission",
               body: "Keep more of your money with simple, transparent pricing.",
-              art: "a",
+              img: artPay,
             },
             {
               id: "o2",
               tag: "Speed",
               title: "Faster payments",
               body: "A flow that feels quick and predictable when it matters.",
-              art: "b",
+              img: artStatus,
             },
             {
               id: "o3",
               tag: "Next-gen",
               title: "Modern payment portal",
               body: "Designed to scale from simple wallet tasks to richer journeys.",
-              art: "c",
+              img: artSplit,
             },
             {
               id: "o4",
               tag: "Rewards",
               title: "Referral program",
               body: "Invite friends and unlock rewards as your network grows.",
-              art: "a",
+              img: artPay,
             },
           ]}
           render={(it) => (
             <div className="offerCard">
-              <OfferArt variant={it.art} />
+              <img
+                src={it.img}
+                alt=""
+                style={{
+                  width: "100%",
+                  height: 190,
+                  objectFit: "cover",
+                  borderRadius: 12,
+                  border: "1px solid var(--border)",
+                }}
+              />
               <div className="offerCard__content">
                 <div className="offerCard__tag">{it.tag}</div>
                 <div className="offerCard__title">{it.title}</div>

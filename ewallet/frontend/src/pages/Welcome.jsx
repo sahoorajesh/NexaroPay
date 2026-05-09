@@ -2,20 +2,11 @@ import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Shell from "../components/layout/Shell.jsx";
 import "./welcome.css";
-
-function readSession() {
-  try {
-    const raw = sessionStorage.getItem("nx_auth");
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-}
+import { clearAuth, readAuth } from "../auth/session.js";
 
 export default function Welcome() {
   const navigate = useNavigate();
-  const auth = readSession();
+  const auth = readAuth();
 
   React.useEffect(() => {
     if (!auth?.userId) navigate("/login", { replace: true });
@@ -32,7 +23,7 @@ export default function Welcome() {
           className="btn btn--ghost"
           type="button"
           onClick={() => {
-            sessionStorage.removeItem("nx_auth");
+            clearAuth();
             navigate("/", { replace: true });
           }}
         >
@@ -73,11 +64,20 @@ export default function Welcome() {
           </div>
 
           <div className="welcomeActions">
-            <Link className="btn btn--primary" to="/">
-              Go to home
+            <Link className="btn btn--primary" to="/wallet">
+              Wallet
             </Link>
-            <Link className="btn btn--ghost" to="/login">
-              Switch account
+            <Link className="btn btn--ghost" to="/add-money">
+              Add money
+            </Link>
+            <Link className="btn btn--ghost" to="/transfer">
+              Transfer
+            </Link>
+            <Link className="btn btn--ghost" to="/txn-status">
+              Txn status
+            </Link>
+            <Link className="btn btn--ghost" to="/profile">
+              Profile
             </Link>
           </div>
         </div>

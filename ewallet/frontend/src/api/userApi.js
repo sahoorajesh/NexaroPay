@@ -1,6 +1,5 @@
-const API_BASE = import.meta.env.VITE_API_BASE || "/api";
-
 export async function createUser(payload) {
+  const API_BASE = import.meta.env.VITE_API_BASE || "/api";
   const res = await fetch(`${API_BASE}/user-service/user`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -19,6 +18,7 @@ export async function createUser(payload) {
 }
 
 export async function login(payload) {
+  const API_BASE = import.meta.env.VITE_API_BASE || "/api";
   const res = await fetch(`${API_BASE}/user-service/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -40,5 +40,14 @@ export async function login(payload) {
   if (!res.ok) {
     throw new Error(data?.message || `Request failed (${res.status})`);
   }
+  return data;
+}
+
+export async function getUserDetails(userId) {
+  const API_BASE = import.meta.env.VITE_API_BASE || "/api";
+  const res = await fetch(`${API_BASE}/user-service/user-details/${encodeURIComponent(String(userId))}`);
+  const contentType = res.headers.get("content-type") || "";
+  const data = contentType.includes("application/json") ? await res.json() : await res.text();
+  if (!res.ok) throw new Error(typeof data === "string" ? data : data?.message || `Request failed (${res.status})`);
   return data;
 }

@@ -2,6 +2,7 @@ import React from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createUser, login } from "../api/userApi.js";
 import { useToast } from "../components/ui/ToastProvider.jsx";
+import { readAuth, writeAuth } from "../auth/session.js";
 
 function isEmail(v) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v || "").trim());
@@ -59,6 +60,13 @@ export default function AuthPage({ defaultTab = "signin" }) {
   const location = useLocation();
   const toast = useToast();
 
+  React.useEffect(() => {
+    // If the user is already logged in, don't let them open the sign-in page.
+    // (Route-level guard also exists, but this helps if this page is reused elsewhere.)
+    const auth = readAuth();
+    if (auth?.userId) navigate("/welcome", { replace: true });
+  }, [navigate]);
+
   const [tab, setTab] = React.useState(defaultTab === "signup" ? "signup" : "signin");
   const [anim, setAnim] = React.useState("enter");
   const [busy, setBusy] = React.useState(false);
@@ -111,15 +119,15 @@ export default function AuthPage({ defaultTab = "signin" }) {
     e.preventDefault();
     setSiSubmitted(true);
     if (!signinValid || busy) return;
-    setBusy(true);
-    try {
-      const res = await login({ email: signin.email.trim(), kyc: signin.kyc.trim() });
-      sessionStorage.setItem("nx_auth", JSON.stringify({ userId: res.userId, user: res.user }));
-      toast.push({ type: "ok", title: "Login successful", message: res.message || "Welcome back." });
-      navigate("/welcome", { replace: true });
-    } catch (err) {
-      const msg = err?.message || "Login failed";
-      toast.push({ type: "error", title: "Login failed", message: msg });
+      setBusy(true);
+      try {
+        const res = await login({ email: signin.email.trim(), kyc: signin.kyc.trim() });
+        writeAuth({ userId: res.userId, user: res.user });
+        toast.push({ type: "ok", title: "Login successful", message: res.message || "Welcome back." });
+        navigate("/welcome", { replace: true });
+      } catch (err) {
+        const msg = err?.message || "Login failed";
+        toast.push({ type: "error", title: "Login failed", message: msg });
       setSignin({ email: "", kyc: "" }); // reset fields on error
       setSiSubmitted(false);
     } finally {
