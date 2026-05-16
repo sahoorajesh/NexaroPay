@@ -50,17 +50,12 @@ export default function Home() {
     >
       <section className="hero">
         <div className="hero__copy">
-          <div className="walletPreview">
-            <div className="walletCard">
-              <div className="walletBalance">₹12,450.00</div>
-              <div className="walletLabel">Available Balance</div>
-            </div>
-          </div>
-          <div className="hero__eyebrow">Simple. Secure. Instant.</div>
+
           <div className="heroTitleRow">
             <img className="heroLogo" src="/favicon.png" alt="" />
             <h1 className="hero__title">NexaroPay eWallet</h1>
           </div>
+          <div className="hero__eyebrow">Simple. Secure. Instant.</div>
           <p className="hero__lead">
             Send money, add balance, and keep track of your wallet activity in a calm, friendly interface built for
             everyday use.

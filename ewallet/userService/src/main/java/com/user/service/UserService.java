@@ -6,6 +6,7 @@ import com.user.dto.UserDTO;
 import com.user.entity.User;
 import com.user.repository.UserRepository;
 import com.util.kafka.UserCreatedPayload;
+import com.user.config.JWTUtil;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,17 +26,23 @@ public class UserService {
 
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
-    @Autowired
-    private RedisTemplate<String,UserDTO> redisTemplate;
+    private final RedisTemplate<String,UserDTO> redisTemplate;
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
 
-    @Autowired
-    private KafkaTemplate<String, Object> kafkaTemplate;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
+
+    private final JWTUtil jwtUtil;
 
     @Value("${user.created.topic}")
     private String userCreatedTopic;
+
+    public UserService(RedisTemplate<String, UserDTO> redisTemplate, UserRepository userRepository, KafkaTemplate<String, Object> kafkaTemplate, JWTUtil jwtUtil) {
+        this.redisTemplate = redisTemplate;
+        this.userRepository = userRepository;
+        this.kafkaTemplate = kafkaTemplate;
+        this.jwtUtil = jwtUtil;
+    }
 
     public UserDTO getUserDetails(Long id){
         String key = "user" + id;
@@ -59,12 +66,21 @@ public class UserService {
         }
 
         return userRepository.findByEmailAndKycNumber(email.trim(), kyc.trim())
-                .map(user -> LoginResponseDTO.builder()
-                        .success(true)
-                        .message("Login successful.")
-                        .userId(user.getId())
-                        .user(toUserDTO(user))
-                        .build())
+                .map(user -> {
+
+                    String token = jwtUtil.generateToken(
+                            user.getId(),
+                            user.getEmail()
+                    );
+
+                    return LoginResponseDTO.builder()
+                            .success(true)
+                            .message("Login successful.")
+                            .userId(user.getId())
+                            .user(toUserDTO(user))
+                            .token(token)
+                            .build();
+                })
                 .orElseGet(() -> LoginResponseDTO.builder()
                         .success(false)
                         .message("Invalid email or kyc.")
