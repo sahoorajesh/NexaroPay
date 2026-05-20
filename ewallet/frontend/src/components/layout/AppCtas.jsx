@@ -1,12 +1,27 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { clearAuth, readAuth } from "../../auth/session.js";
+import { logout } from "../../api/userApi.js";
 import { Icon } from "../ui/Icons.jsx";
 
 export default function AppCtas() {
   const navigate = useNavigate();
   const auth = readAuth();
   const name = auth?.user?.name;
+  const [signingOut, setSigningOut] = React.useState(false);
+
+  async function onSignOut() {
+    if (signingOut) return;
+    setSigningOut(true);
+    try {
+      await logout();
+    } catch {
+      // Even if the server cannot be reached, remove the local session.
+    } finally {
+      clearAuth();
+      navigate("/", { replace: true });
+    }
+  }
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
@@ -41,13 +56,11 @@ export default function AppCtas() {
       <button
         className="btn btn--ghost"
         type="button"
-        onClick={() => {
-          clearAuth();
-          navigate("/", { replace: true });
-        }}
+        onClick={onSignOut}
+        disabled={signingOut}
       >
         <Icon name="log-out" />
-        Sign out
+        {signingOut ? "Signing out..." : "Sign out"}
       </button>
     </div>
   );

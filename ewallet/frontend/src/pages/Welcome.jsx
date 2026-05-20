@@ -3,11 +3,13 @@ import { Link, useNavigate } from "react-router-dom";
 import Shell from "../components/layout/Shell.jsx";
 import "./welcome.css";
 import { clearAuth, readAuth } from "../auth/session.js";
+import { logout } from "../api/userApi.js";
 import { Icon } from "../components/ui/Icons.jsx";
 
 export default function Welcome() {
   const navigate = useNavigate();
   const auth = readAuth();
+  const [signingOut, setSigningOut] = React.useState(false);
 
   React.useEffect(() => {
     if (!auth?.userId) navigate("/login", { replace: true });
@@ -17,19 +19,30 @@ export default function Welcome() {
 
   const u = auth.user || {};
 
+  async function onSignOut() {
+    if (signingOut) return;
+    setSigningOut(true);
+    try {
+      await logout();
+    } catch {
+      // Keep logout usable when the backend is unavailable or token is already invalid.
+    } finally {
+      clearAuth();
+      navigate("/", { replace: true });
+    }
+  }
+
   return (
     <Shell
       cta={
         <button
           className="btn btn--ghost"
           type="button"
-          onClick={() => {
-            clearAuth();
-            navigate("/", { replace: true });
-          }}
+          onClick={onSignOut}
+          disabled={signingOut}
         >
           <Icon name="log-out" />
-          Sign out
+          {signingOut ? "Signing out..." : "Sign out"}
         </button>
       }
     >

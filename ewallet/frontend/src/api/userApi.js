@@ -17,3 +17,9 @@ export function login(payload) {
 export function getUserDetails(userId) {
   return jsonFetch(`/user-service/user-details/${encodeURIComponent(String(userId))}`);
 }
+
+export function logout() {
+  return jsonFetch("/user-service/logout", {
+    method: "POST",
+  });
+}
