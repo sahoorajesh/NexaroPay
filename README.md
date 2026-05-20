@@ -1,342 +1,192 @@
-# NexaroPay eWallet API Documentation
+# NexaroPay eWallet
 
-This repo contains multiple Spring Boot services. Each service runs on its own port (from `application.properties`) and exposes endpoints under the controller `@RequestMapping` paths.
+NexaroPay is a full-stack eWallet application built with a Spring Boot microservice backend and a React frontend. It supports user onboarding, JWT login/logout, wallet balance management, add-money flows, peer-to-peer transfers, transaction tracking, monthly wallet analysis, merchant registration, and a local payment-gateway simulation.
 
-All JSON examples below use the exact DTO field names from the code.
+The project is designed as a practical distributed-system learning project: services communicate through REST and Kafka events, persist data in PostgreSQL, use Redis for token blacklisting/cache support, and expose a Vite-powered React UI.
 
-## User Service (port 8091)
+## Features
 
-Base URL: `http://localhost:8091`
+- User registration, login, and backend-integrated logout
+- JWT-secured APIs with token blacklist support
+- Wallet creation and balance lookup
+- Add-money flow through the payment gateway module
+- Peer-to-peer wallet transfer
+- Transaction status lookup
+- Paginated transaction history with copyable transaction IDs
+- Wallet page with latest 10 transactions
+- Welcome dashboard with current-month debit/credit pie analysis
+- Merchant registration and payment gateway demo page
+- Kafka-driven wallet, transaction, and notification events
+- Email notification service support through Gmail app password configuration
 
-### Create User
+## Tech Stack
 
-`POST /user-service/user`
+| Layer | Technology |
+| --- | --- |
+| Frontend | React 18, Vite, React Router |
+| Backend | Java 21, Spring Boot 4, Spring Web MVC, Spring Security |
+| Persistence | PostgreSQL, Spring Data JPA |
+| Messaging | Apache Kafka |
+| Cache/session support | Redis |
+| Build tools | Maven Wrapper, npm |
 
-Request body (JSON) (`UserDTO`):
-```json
-{
-  "name": "Rajesh Kumar",
-  "email": "rajesh@example.com",
-  "phone": "9999999999",
-  "kycNumber": "KYC123456"
-}
+## Repository Structure
+
+```text
+.
++-- CommonUtils/             # Shared Kafka/security/filter utilities
++-- userService/             # Users, login, logout, JWT issuing
++-- walletService/           # Wallet creation, balance, add-money processing
++-- transactionService/      # Transfers, status, transaction history, analysis
++-- notificationService/     # Kafka-driven notification/email handling
++-- PaymentGateway/          # Merchant and payment gateway simulation
++-- frontend/                # React/Vite application
++-- docs/API.md              # Detailed API reference
++-- SetupReadME              # Original local setup notes
 ```
 
-Response:
-`200 OK` (body is a `long` userId)
-```json
-1
+## Service Ports
+
+| Service | Port |
+| --- | ---: |
+| User Service | `8091` |
+| Wallet Service | `8092` |
+| Notification Service | `8093` |
+| Transaction Service | `8094` |
+| Payment Gateway | `9090` |
+| Frontend | `3000` |
+
+The frontend calls `/api/<service-prefix>/*` in development. Vite proxies those requests to the local services in `frontend/vite.config.js`.
+
+## Prerequisites
+
+- Java 21
+- Node.js 18 or newer
+- PostgreSQL running locally on `5432`
+- Redis running locally on `6379`
+- Apache Kafka running locally on `9092`
+- Maven Wrapper from this repository
+
+Default database settings in the service `application.properties` files:
+
+```text
+database: nexaroPayDB
+username: postgres
+password: postgres
 ```
 
-curl:
+Create the database before starting services:
+
+```sql
+CREATE DATABASE nexaroPayDB;
+```
+
+For notification emails, set a Gmail app password in the environment:
+
 ```bash
-curl -X POST "http://localhost:8091/user-service/user" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name":"Rajesh Kumar",
-    "email":"rajesh@example.com",
-    "phone":"9999999999",
-    "kycNumber":"KYC123456"
-  }'
+APP_PASSWORD=<your-gmail-app-password>
 ```
 
-### Get User Details
+Do not commit real secrets. The checked-in values are local-development defaults.
 
-`GET /user-service/user-details/{userId}`
+## Running Locally
 
-Path params:
-- `userId` (number)
+Start PostgreSQL, Redis, and Kafka first.
 
-Response:
-`200 OK` (`UserDTO`)
-```json
-{
-  "name": "Rajesh Kumar",
-  "email": "rajesh@example.com",
-  "phone": "9999999999",
-  "kycNumber": "KYC123456"
-}
-```
+Then run the backend services from the repository root in separate terminals:
 
-curl:
 ```bash
-curl "http://localhost:8091/user-service/user-details/1"
+./mvnw spring-boot:run -pl userService
+./mvnw spring-boot:run -pl walletService
+./mvnw spring-boot:run -pl transactionService
+./mvnw spring-boot:run -pl notificationService
+./mvnw spring-boot:run -pl PaymentGateway
 ```
 
-## Wallet Service (port 8092)
+On Windows PowerShell, use:
 
-Base URL: `http://localhost:8092`
-
-### Get Wallet Details
-
-`GET /wallet-service/wallet-details/{userId}`
-
-Path params:
-- `userId` (number)
-
-Response:
-`200 OK` (`WalletInfoDTO`)
-```json
-{
-  "walletId": 10,
-  "userId": 1,
-  "balance": 2500.0
-}
+```powershell
+.\mvnw.cmd spring-boot:run -pl userService
 ```
 
-curl:
+Run the frontend:
+
 ```bash
-curl "http://localhost:8092/wallet-service/wallet-details/1"
+cd frontend
+npm install
+npm run dev
 ```
 
-### Check Wallet Balance
+Open:
 
-`GET /wallet-service/check-balance/{userId}`
-
-Path params:
-- `userId` (number)
-
-Response:
-`200 OK` (`WalletInfoDTO`)
-```json
-{
-  "walletId": 10,
-  "userId": 1,
-  "balance": 2500.0
-}
+```text
+http://localhost:3000
 ```
 
-curl:
+## Kafka Topics
+
+The services use these topics by default:
+
+| Topic | Purpose |
+| --- | --- |
+| `USER-REGISTERED` | User registration event consumed by wallet/notification flows |
+| `WALLET-UPDATED` | Wallet update event |
+| `TXN-INIT` | Transfer initiated event |
+| `TXN-COMPLETED` | Transfer completion event |
+
+## Key API Areas
+
+Full request/response examples are documented in [API.md](ewallet/docs/API.md).
+
+Important endpoint groups:
+
+- `POST /user-service/user`
+- `POST /user-service/login`
+- `POST /user-service/logout`
+- `GET /wallet-service/wallet-details/{userId}`
+- `POST /wallet-service/add-money`
+- `POST /transaction-service/transfer`
+- `GET /transaction-service/status/{txnId}`
+- `GET /transaction-service/users/{userId}/transactions`
+- `GET /transaction-service/users/{userId}/monthly-analysis`
+- `POST /merchant-service/register-merchant`
+- `POST /pg-service/init-payment`
+
+## Frontend Screens
+
+- Landing page
+- Signup and login
+- Welcome dashboard with wallet analysis
+- Wallet balance and latest transactions
+- Add money
+- Transfer money
+- Transaction status lookup
+- Paginated transaction history
+- Profile
+- Merchant registration
+
+## Build and Verification
+
+Compile the transaction service and dependencies:
+
 ```bash
-curl "http://localhost:8092/wallet-service/check-balance/1"
+./mvnw -pl transactionService -am compile
 ```
 
-### Add Money (Initiate Payment Gateway Flow)
+Build the frontend:
 
-`POST /wallet-service/add-money`
-
-Request body (JSON) (`AddMoneyReq`):
-```json
-{
-  "amount": 100.0,
-  "userId": 1,
-  "merchantId": 1
-}
-```
-
-Notes:
-- In the current implementation, `merchantId` is overwritten in code to `1L` before calling the payment gateway.
-
-Response:
-`200 OK` (`AddMoneyResponse`)
-```json
-{
-  "url": "http://localhost:9090/payment-page/<txnId>",
-  "txnId": "PG_TXN_123"
-}
-```
-
-curl:
 ```bash
-curl -X POST "http://localhost:8092/wallet-service/add-money" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "amount":100.0,
-    "userId":1,
-    "merchantId":1
-  }'
+cd frontend
+npm run build
 ```
 
-### Process Payment (Finalize Wallet Flow Using Payment Gateway Txn Id)
+Build all Maven modules:
 
-`GET /wallet-service/process-payment/{pgTxnId}`
-
-Path params:
-- `pgTxnId` (string)
-
-Response:
-`200 OK` (plain string)
-```json
-"OK"
-```
-
-curl:
 ```bash
-curl "http://localhost:8092/wallet-service/process-payment/PG_TXN_123"
+./mvnw clean compile
 ```
 
-## Transaction Service (port 8094)
+## Notes
 
-Base URL: `http://localhost:8094`
-
-### Initiate Transfer
-
-`POST /transaction-service/transfer`
-
-Request body (JSON) (`TransactionRequestDTO`):
-```json
-{
-  "toUserId": 2,
-  "fromUserId": 1,
-  "amount": 50.0,
-  "comment": "Dinner split"
-}
-```
-
-Response:
-`202 Accepted` (body is a transaction id string; may be `null` on error in current implementation)
-```json
-"TXN_123"
-```
-
-curl:
-```bash
-curl -X POST "http://localhost:8094/transaction-service/transfer" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "toUserId":2,
-    "fromUserId":1,
-    "amount":50.0,
-    "comment":"Dinner split"
-  }'
-```
-
-### Get Transaction Status
-
-`GET /transaction-service/status/{txnId}`
-
-Path params:
-- `txnId` (string)
-
-Response:
-`200 OK` (`TransactionStatusDTO`)
-```json
-{
-  "status": "SUCCESS",
-  "reason": "OK"
-}
-```
-
-curl:
-```bash
-curl "http://localhost:8094/transaction-service/status/TXN_123"
-```
-
-## Payment Gateway Service (port 9090)
-
-Base URL: `http://localhost:9090`
-
-### Register Merchant
-
-`POST /merchant-service/register-merchant`
-
-Request body (JSON) (`MerchantDetailsDTO`):
-```json
-{
-  "merchantKey": "mkey_abc",
-  "name": "Demo Merchant",
-  "email": "merchant@example.com",
-  "statusWebhook": "http://localhost:8080/webhook/pg-status",
-  "redirectionUrl": "http://localhost:3000/pg-return"
-}
-```
-
-Response:
-`200 OK` (body is a `long` merchantId)
-```json
-1
-```
-
-curl:
-```bash
-curl -X POST "http://localhost:9090/merchant-service/register-merchant" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "merchantKey":"mkey_abc",
-    "name":"Demo Merchant",
-    "email":"merchant@example.com",
-    "statusWebhook":"http://localhost:8080/webhook/pg-status",
-    "redirectionUrl":"http://localhost:3000/pg-return"
-  }'
-```
-
-### Init Payment
-
-`POST /pg-service/init-payment`
-
-Request body (JSON) (`PaymentPageRequest`):
-```json
-{
-  "merchantId": 1,
-  "merchantKey": "mkey_abc",
-  "amount": 100.0,
-  "orderId": "ORDER_001",
-  "userId": 1
-}
-```
-
-Response:
-`200 OK` (`PaymentInitResponse`)
-```json
-{
-  "url": "http://localhost:9090/payment-page/<txnId>",
-  "txnId": "PG_TXN_123"
-}
-```
-
-curl:
-```bash
-curl -X POST "http://localhost:9090/pg-service/init-payment" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "merchantId":1,
-    "merchantKey":"mkey_abc",
-    "amount":100.0,
-    "orderId":"ORDER_001",
-    "userId":1
-  }'
-```
-
-### Payment Status
-
-`GET /pg-service/payment-status/{txnId}`
-
-Path params:
-- `txnId` (string)
-
-Response:
-`200 OK` (`TransactionDetailDto`)
-```json
-{
-  "status": "SUCCESS",
-  "userId": 1,
-  "amount": 100.0
-}
-```
-
-curl:
-```bash
-curl "http://localhost:9090/pg-service/payment-status/PG_TXN_123"
-```
-
-### Do Payment (Redirect)
-
-`POST /pg-service/doPayment/{txnId}`
-
-Path params:
-- `txnId` (string)
-
-Response:
-`302 Found` with `Location` header set to the next URL.
-
-curl (show redirect headers):
-```bash
-curl -i -X POST "http://localhost:9090/pg-service/doPayment/PG_TXN_123"
-```
-
-### Payment Page (HTML, not JSON)
-
-`GET /payment-page/{txnId}`
-
-Purpose:
-- Returns a server-rendered HTML page (`paymentpage.html`) that shows merchant name, amount, and submits to `/pg-service/doPayment/{txnId}`.
+- `spring.jpa.hibernate.ddl-auto=update` is enabled for local schema evolution.
+- The payment gateway is a local simulation module, not a real payment provider integration.
