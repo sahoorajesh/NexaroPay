@@ -24,8 +24,17 @@ export function Icon({ name, className, title }) {
           <path {...common} d="M22 11.1V12a10 10 0 1 1-5.9-9.1" />
           <path {...common} d="m9 11 3 3L22 4" />
         </>
+      ) : name === "chevron-left" ? (
+        <path {...common} d="m15 18-6-6 6-6" />
+      ) : name === "chevron-right" ? (
+        <path {...common} d="m9 18 6-6-6-6" />
       ) : name === "close" ? (
         <path {...common} d="M6 6l12 12M18 6 6 18" />
+      ) : name === "copy" ? (
+        <>
+          <rect {...common} x="9" y="9" width="11" height="11" rx="2" />
+          <path {...common} d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        </>
       ) : name === "credit-card" ? (
         <>
           <rect {...common} x="3" y="5" width="18" height="14" rx="2" />
@@ -35,6 +44,11 @@ export function Icon({ name, className, title }) {
         <>
           <path {...common} d="m3 11 9-8 9 8" />
           <path {...common} d="M5 10v10h14V10M9 20v-6h6v6" />
+        </>
+      ) : name === "history" ? (
+        <>
+          <path {...common} d="M3 12a9 9 0 1 0 3-6.7" />
+          <path {...common} d="M3 4v5h5M12 7v5l3 2" />
         </>
       ) : name === "info" ? (
         <>

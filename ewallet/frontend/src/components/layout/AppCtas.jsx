@@ -26,6 +26,10 @@ export default function AppCtas() {
         <Icon name="send" />
         Transfer
       </Link>
+      <Link className="btn btn--ghost" to="/transactions">
+        <Icon name="history" />
+        Transactions
+      </Link>
       <Link className="btn btn--ghost" to="/txn-status">
         <Icon name="search" />
         Status

@@ -1,5 +1,6 @@
 package com.transaction.service;
 
+import com.transaction.dto.TransactionListItemDTO;
 import com.transaction.dto.TransactionRequestDTO;
 import com.transaction.dto.TransactionStatusDTO;
 import com.transaction.entity.Transaction;
@@ -12,6 +13,9 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Service;
@@ -72,5 +76,33 @@ public class TransactionService {
             transactionStatusDTO.setReason(txn.getReason());
         }
         return transactionStatusDTO;
+    }
+
+    public Page<TransactionListItemDTO> getTransactionsForUser(Long userId, int page, int size) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.clamp(size, 1, 50);
+        PageRequest pageRequest = PageRequest.of(
+                safePage,
+                safeSize,
+                Sort.by(Sort.Direction.DESC, "txnCreatedDate")
+        );
+
+        return transactionRepository
+                .findByFromUserIdOrToUserId(userId, userId, pageRequest)
+                .map(this::toListItem);
+    }
+
+    private TransactionListItemDTO toListItem(Transaction txn) {
+        return TransactionListItemDTO.builder()
+                .txnId(txn.getTxnId())
+                .fromUserId(txn.getFromUserId())
+                .toUserId(txn.getToUserId())
+                .amount(txn.getAmount())
+                .status(txn.getStatus() == null ? null : txn.getStatus().toString())
+                .comment(txn.getComment())
+                .reason(txn.getReason())
+                .txnCreatedDate(txn.getTxnCreatedDate())
+                .txnLastUpdatedDate(txn.getTxnLastUpdatedDate())
+                .build();
     }
 }

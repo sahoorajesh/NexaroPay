@@ -7,6 +7,7 @@ import WalletPage from "./pages/WalletPage.jsx";
 import AddMoneyPage from "./pages/AddMoneyPage.jsx";
 import TransferPage from "./pages/TransferPage.jsx";
 import TxnStatusPage from "./pages/TxnStatusPage.jsx";
+import TransactionsPage from "./pages/TransactionsPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
 import MerchantRegisterPage from "./pages/MerchantRegisterPage.jsx";
 import { readAuth } from "./auth/session.js";
@@ -82,6 +83,14 @@ export default function App() {
         element={
           <Protected>
             <TransferPage />
+          </Protected>
+        }
+      />
+      <Route
+        path="/transactions"
+        element={
+          <Protected>
+            <TransactionsPage />
           </Protected>
         }
       />

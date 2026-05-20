@@ -268,6 +268,196 @@ html[data-theme="dark"] .input {
   font-weight: 950;
 }
 
+.latestTransactionsPanel {
+  margin-top: 4px;
+}
+
+.transactionSummaryBand {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.transactionSummaryBand div {
+  min-height: 58px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 11px;
+  display: grid;
+  align-content: space-between;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.72), rgba(248, 250, 252, 0.34)),
+    rgba(148, 163, 184, 0.06);
+}
+
+html[data-theme="dark"] .transactionSummaryBand div {
+  background:
+    linear-gradient(135deg, rgba(15, 23, 42, 0.48), rgba(2, 6, 23, 0.22)),
+    rgba(148, 163, 184, 0.05);
+}
+
+.transactionSummaryBand span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.transactionSummaryBand strong {
+  font-size: 17px;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.transactionToolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.transactionToolbar__field {
+  width: min(220px, 100%);
+}
+
+.transactionToolbar select.input {
+  cursor: pointer;
+}
+
+.transactionScrollSection {
+  max-height: 640px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.transactionList {
+  display: grid;
+  gap: 10px;
+}
+
+.transactionList--compact {
+  gap: 8px;
+}
+
+.transactionCard {
+  border: none;
+  border-radius: 10px;
+  padding: 12px;
+  background: var(--surface2);
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.07);
+}
+
+.transactionList--compact .transactionCard {
+  box-shadow: none;
+  background: rgba(148, 163, 184, 0.05);
+}
+
+.transactionCard__main {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.transactionCard__title {
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.transactionCard__sub {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+
+.txnCopy {
+  margin-top: 6px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.txnCopy:hover {
+  color: var(--text);
+}
+
+.txnCopy span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.txnCopy svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+}
+
+.transactionCard__who {
+  flex: 1 1 34%;
+  min-width: 180px;
+}
+
+.transactionCard__amount {
+  flex: 0 0 150px;
+  font-size: 16px;
+  font-weight: 950;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.transactionCard__amount--debit {
+  color: var(--danger);
+}
+
+.transactionCard__amount--credit {
+  color: var(--success);
+}
+
+.transactionCard__time {
+  flex: 0 0 178px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.transactionCard .statusBadge {
+  flex: 0 0 92px;
+  height: 28px;
+}
+
+.transactionEmpty {
+  border: 1px dashed rgba(148, 163, 184, 0.34);
+  border-radius: 10px;
+  padding: 18px;
+  color: var(--muted);
+  text-align: center;
+  background: rgba(148, 163, 184, 0.05);
+}
+
+.transactionList__viewAll {
+  justify-self: end;
+}
+
+.paginationBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.paginationBar__count {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 850;
+}
+
 .profileCard {
   border: 1px solid rgba(177, 138, 69, 0.22);
   border-radius: 16px;
@@ -540,5 +730,27 @@ html[data-theme="dark"] .profileCard {
   .walletVisualCard {
     min-height: 280px;
   }
-}
 
+  .transactionSummaryBand {
+    grid-template-columns: 1fr;
+  }
+
+  .transactionCard__main {
+    display: grid;
+    gap: 8px;
+  }
+
+  .transactionCard__amount {
+    text-align: left;
+    white-space: normal;
+  }
+
+  .transactionCard__who,
+  .transactionCard__amount,
+  .transactionCard__time,
+  .transactionCard .statusBadge {
+    min-width: 0;
+    width: 100%;
+    flex-basis: auto;
+  }
+}

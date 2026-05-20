@@ -222,6 +222,46 @@ curl:
 curl "http://localhost:8094/transaction-service/status/TXN_123"
 ```
 
+### List User Transactions
+
+`GET /transaction-service/users/{userId}/transactions?page=0&size=10`
+
+Path params:
+- `userId` (number)
+
+Query params:
+- `page` (number, zero-based, default `0`)
+- `size` (number, default `10`, max `50`)
+
+Response:
+`200 OK` (Spring `Page<TransactionListItemDTO>`)
+```json
+{
+  "content": [
+    {
+      "txnId": "TXN_123",
+      "fromUserId": 1,
+      "toUserId": 2,
+      "amount": 50.0,
+      "status": "SUCCESS",
+      "comment": "Dinner split",
+      "reason": null,
+      "txnCreatedDate": "2026-05-21T00:00:00+05:30",
+      "txnLastUpdatedDate": "2026-05-21T00:00:04+05:30"
+    }
+  ],
+  "totalPages": 1,
+  "totalElements": 1,
+  "number": 0,
+  "size": 10
+}
+```
+
+curl:
+```bash
+curl "http://localhost:8094/transaction-service/users/1/transactions?page=0&size=10"
+```
+
 ## Payment Gateway Service (port 9090)
 
 Base URL: `http://localhost:9090`

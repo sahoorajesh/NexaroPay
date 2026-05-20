@@ -1,10 +1,13 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import Shell from "../components/layout/Shell.jsx";
 import AppCtas from "../components/layout/AppCtas.jsx";
 import { readAuth } from "../auth/session.js";
 import { checkBalance, getWalletDetails } from "../api/walletApi.js";
+import { listUserTransactions } from "../api/transactionApi.js";
 import { useToast } from "../components/ui/ToastProvider.jsx";
 import { Icon } from "../components/ui/Icons.jsx";
+import TransactionList from "../components/ui/TransactionList.jsx";
 import "./appPages.css";
 
 export default function WalletPage() {
@@ -14,6 +17,8 @@ export default function WalletPage() {
 
   const [loading, setLoading] = React.useState(true);
   const [wallet, setWallet] = React.useState(null);
+  const [txnLoading, setTxnLoading] = React.useState(true);
+  const [transactions, setTransactions] = React.useState([]);
 
   const load = React.useCallback(async () => {
     if (!userId) return;
@@ -32,9 +37,27 @@ export default function WalletPage() {
     }
   }, [toast, userId]);
 
+  const loadTransactions = React.useCallback(async () => {
+    if (!userId) return;
+    setTxnLoading(true);
+    try {
+      const result = await listUserTransactions(userId, { page: 0, size: 10 });
+      setTransactions(result?.content || []);
+    } catch (e) {
+      toast.push({
+        type: "error",
+        title: "Transactions load failed",
+        message: e?.message || "We could not load your latest transactions.",
+      });
+    } finally {
+      setTxnLoading(false);
+    }
+  }, [toast, userId]);
+
   React.useEffect(() => {
     load();
-  }, [load]);
+    loadTransactions();
+  }, [load, loadTransactions]);
 
   const balance = wallet?.balance;
 
@@ -100,6 +123,25 @@ export default function WalletPage() {
             <div className="walletVisualCard__brand">nexaroPay</div>
           </div>
         </div>
+
+        <section className="panel latestTransactionsPanel">
+          <div className="panelHead">
+            <div>
+              <div className="panelTitle">Latest Transactions</div>
+            </div>
+            <Link className="btn btn--ghost" to="/transactions">
+              <Icon name="history" />
+              View all
+            </Link>
+          </div>
+          <TransactionList
+            transactions={transactions}
+            userId={userId}
+            loading={txnLoading}
+            compact
+            emptyText="No wallet transactions yet."
+          />
+        </section>
       </div>
     </Shell>
   );
