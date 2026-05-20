@@ -1,73 +1,70 @@
 package com.util.kafka.Filters;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
-import jakarta.annotation.PostConstruct;
+import com.util.security.AuthenticatedUser;
+import com.util.security.JwtTokenService;
+import com.util.security.TokenBlacklistService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.MDC;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
 
-import javax.crypto.SecretKey;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 
 @Component
-public class RequestFilter extends HttpFilter {
+public class RequestFilter extends OncePerRequestFilter {
 
-    @Value("${jwt.secret}")
-    private String SECRET;
+    private static final String BEARER_PREFIX = "Bearer ";
 
-    private SecretKey key;
+    private final JwtTokenService jwtTokenService;
+    private final TokenBlacklistService tokenBlacklistService;
 
-    @PostConstruct
-    public void init() {
-        key = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
+    public RequestFilter(JwtTokenService jwtTokenService, TokenBlacklistService tokenBlacklistService) {
+        this.jwtTokenService = jwtTokenService;
+        this.tokenBlacklistService = tokenBlacklistService;
     }
+
     @Override
-    public void doFilter(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+            throws ServletException, IOException {
+        try {
+            MDC.put("requestId", request.getHeader("requestId"));
+            String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
 
-        MDC.put("requestId", request.getHeader("requestId"));
+            if (authHeader != null && !authHeader.isBlank()) {
+                if (!authHeader.startsWith(BEARER_PREFIX)) {
+                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid authorization header");
+                    return;
+                }
 
-        String path = request.getRequestURI();
+                String token = authHeader.substring(BEARER_PREFIX.length());
+                try {
+                    if (tokenBlacklistService.isBlacklisted(token)) {
+                        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token has been revoked");
+                        return;
+                    }
 
-        if (!path.contains("/login") && !path.contains("/user") && !path.contains("/actuator")) {
-
-            String auth = request.getHeader("Authorization");
-
-            if (auth == null || !auth.startsWith("Bearer ")) {
-                response.sendError(401, "Missing token");
-                return;
+                    Authentication authentication = jwtTokenService.getAuthentication(token);
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                    if (authentication.getPrincipal() instanceof AuthenticatedUser user) {
+                        request.setAttribute("userId", user.userId());
+                        request.setAttribute("email", user.email());
+                    }
+                } catch (Exception e) {
+                    SecurityContextHolder.clearContext();
+                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid token");
+                    return;
+                }
             }
 
-            try
-            {
-
-                String token = auth.substring(7);
-
-                Claims claims = Jwts.parser()
-                        .verifyWith(key)
-                        .build()
-                        .parseSignedClaims(token)
-                        .getPayload();
-
-                request.setAttribute("userId", claims.get("userId"));
-
-            } catch (Exception e) {
-
-                response.sendError(401, "Invalid token");
-                return;
-            }
+            chain.doFilter(request, response);
+        } finally {
+            MDC.clear();
         }
-
-        chain.doFilter(request, response);
-
-        MDC.clear();
     }
 }

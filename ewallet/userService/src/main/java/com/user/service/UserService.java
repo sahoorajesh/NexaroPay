@@ -7,7 +7,9 @@ import com.user.dto.UserDTO;
 import com.user.entity.User;
 import com.user.repository.UserRepository;
 import com.util.kafka.UserCreatedPayload;
-import com.user.config.JWTUtil;
+import com.util.security.JwtTokenService;
+import com.util.security.TokenBlacklistService;
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +21,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -33,18 +36,21 @@ public class UserService {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    private final JWTUtil jwtUtil;
+    private final JwtTokenService jwtTokenService;
+
+    private final TokenBlacklistService tokenBlacklistService;
 
     @Value("${user.created.topic}")
     private String userCreatedTopic;
 
     private static final String BEARER_PREFIX = "Bearer ";
 
-    public UserService(RedisTemplate<String, UserDTO> redisTemplate, UserRepository userRepository, KafkaTemplate<String, Object> kafkaTemplate, JWTUtil jwtUtil) {
+    public UserService(RedisTemplate<String, UserDTO> redisTemplate, UserRepository userRepository, KafkaTemplate<String, Object> kafkaTemplate, JwtTokenService jwtTokenService, TokenBlacklistService tokenBlacklistService) {
         this.redisTemplate = redisTemplate;
         this.userRepository = userRepository;
         this.kafkaTemplate = kafkaTemplate;
-        this.jwtUtil = jwtUtil;
+        this.jwtTokenService = jwtTokenService;
+        this.tokenBlacklistService = tokenBlacklistService;
     }
 
     public UserDTO getUserDetails(Long id){
@@ -71,7 +77,7 @@ public class UserService {
         return userRepository.findByEmailAndKycNumber(email.trim(), kyc.trim())
                 .map(user -> {
 
-                    String token = jwtUtil.generateToken(
+                    String token = jwtTokenService.generateToken(
                             user.getId(),
                             user.getEmail()
                     );
@@ -131,7 +137,7 @@ public class UserService {
 
             String token = authHeader.substring(BEARER_PREFIX.length());
 
-            long remainingValidity = jwtUtil.getRemainingValidity(token);
+            long remainingValidity = jwtTokenService.getRemainingValidity(token);
 
             // Token already expired then treat as logged out
             if (remainingValidity <= 0) {
@@ -141,12 +147,14 @@ public class UserService {
                         .message("User already logged out")
                         .build();
             }
+            tokenBlacklistService.blacklist(token, Duration.ofMillis(remainingValidity));
+
             return LogoutResponseDTO.builder()
                     .success(true)
                     .message("User logged out successfully")
                     .build();
 
-        } catch (io.jsonwebtoken.ExpiredJwtException e) {
+        } catch (ExpiredJwtException e) {
 
             return LogoutResponseDTO.builder()
                     .success(true)
