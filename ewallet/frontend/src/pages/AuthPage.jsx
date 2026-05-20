@@ -136,7 +136,7 @@ export default function AuthPage({ defaultTab = "signin" }) {
       setBusy(true);
       try {
         const res = await login({ email: signin.email.trim(), kyc: signin.kyc.trim() });
-        writeAuth({ userId: res.userId, user: res.user, token: res.token });
+        writeAuth({ userId: res.userId, user: res.user, token: res.token, refreshToken: res.refreshToken });
         toast.push({ type: "ok", title: "Login successful", message: res.message || "Welcome back." });
         navigate("/welcome", { replace: true });
       } catch (err) {

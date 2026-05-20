@@ -18,6 +18,12 @@ import java.util.List;
 @Service
 public class JwtTokenService {
 
+    private static final long ACCESS_TOKEN_VALIDITY_MS = 15 * 60 * 1000;
+    private static final long REFRESH_TOKEN_VALIDITY_MS = 7 * 24 * 60 * 60 * 1000L;
+    private static final String TOKEN_TYPE = "type";
+    private static final String ACCESS = "access";
+    private static final String REFRESH = "refresh";
+
     @Value("${jwt.secret}")
     private String secret;
 
@@ -29,11 +35,24 @@ public class JwtTokenService {
     }
 
     public String generateToken(Long userId, String email) {
+        return generateAccessToken(userId, email);
+    }
+
+    public String generateAccessToken(Long userId, String email) {
+        return generateToken(userId, email, ACCESS, ACCESS_TOKEN_VALIDITY_MS);
+    }
+
+    public String generateRefreshToken(Long userId, String email) {
+        return generateToken(userId, email, REFRESH, REFRESH_TOKEN_VALIDITY_MS);
+    }
+
+    private String generateToken(Long userId, String email, String type, long validityMs) {
         return Jwts.builder()
                 .subject(email)
                 .claim("userId", userId)
+                .claim(TOKEN_TYPE, type)
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + 86400000))
+                .expiration(new Date(System.currentTimeMillis() + validityMs))
                 .signWith(key)
                 .compact();
     }
@@ -47,13 +66,25 @@ public class JwtTokenService {
     }
 
     public Authentication getAuthentication(String token) {
-        Claims claims = validateToken(token);
+        Claims claims = validateAccessToken(token);
         AuthenticatedUser user = new AuthenticatedUser(extractUserId(claims), claims.getSubject());
         return new UsernamePasswordAuthenticationToken(
                 user,
                 token,
                 List.of(new SimpleGrantedAuthority("ROLE_USER"))
         );
+    }
+
+    public Claims validateAccessToken(String token) {
+        Claims claims = validateToken(token);
+        validateTokenType(claims, ACCESS);
+        return claims;
+    }
+
+    public Claims validateRefreshToken(String token) {
+        Claims claims = validateToken(token);
+        validateTokenType(claims, REFRESH);
+        return claims;
     }
 
     public Long extractUserId(String token) {
@@ -78,5 +109,12 @@ public class JwtTokenService {
             return number.longValue();
         }
         return Long.valueOf(value.toString());
+    }
+
+    private void validateTokenType(Claims claims, String expectedType) {
+        String type = claims.get(TOKEN_TYPE, String.class);
+        if (!expectedType.equals(type)) {
+            throw new IllegalArgumentException("Invalid token type");
+        }
     }
 }

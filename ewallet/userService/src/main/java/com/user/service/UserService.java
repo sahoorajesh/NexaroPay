@@ -2,7 +2,9 @@ package com.user.service;
 
 import com.user.dto.LoginRequestDTO;
 import com.user.dto.LoginResponseDTO;
+import com.user.dto.LogoutRequestDTO;
 import com.user.dto.LogoutResponseDTO;
+import com.user.dto.RefreshTokenRequestDTO;
 import com.user.dto.UserDTO;
 import com.user.entity.User;
 import com.user.repository.UserRepository;
@@ -10,11 +12,11 @@ import com.util.kafka.UserCreatedPayload;
 import com.util.security.JwtTokenService;
 import com.util.security.TokenBlacklistService;
 import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.Claims;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -81,6 +83,10 @@ public class UserService {
                             user.getId(),
                             user.getEmail()
                     );
+                    String refreshToken = jwtTokenService.generateRefreshToken(
+                            user.getId(),
+                            user.getEmail()
+                    );
 
                     return LoginResponseDTO.builder()
                             .success(true)
@@ -88,6 +94,7 @@ public class UserService {
                             .userId(user.getId())
                             .user(toUserDTO(user))
                             .token(token)
+                            .refreshToken(refreshToken)
                             .build();
                 })
                 .orElseGet(() -> LoginResponseDTO.builder()
@@ -124,9 +131,69 @@ public class UserService {
         return user.getId();
     }
 
-    public LogoutResponseDTO logoutUser(String authHeader) {
+    public LoginResponseDTO refreshToken(RefreshTokenRequestDTO request) {
+        String refreshToken = request == null ? null : request.getRefreshToken();
+        if (isBlank(refreshToken)) {
+            return LoginResponseDTO.builder()
+                    .success(false)
+                    .message("Refresh token is required.")
+                    .build();
+        }
+
+        try {
+            if (tokenBlacklistService.isBlacklisted(refreshToken)) {
+                return LoginResponseDTO.builder()
+                        .success(false)
+                        .message("Refresh token has been revoked.")
+                        .build();
+            }
+
+            Claims claims = jwtTokenService.validateRefreshToken(refreshToken);
+            Long userId = jwtTokenService.extractUserId(refreshToken);
+            String email = claims.getSubject();
+            UserDTO userDTO = userRepository.findById(userId)
+                    .map(UserService::toUserDTO)
+                    .orElse(null);
+
+            if (userDTO == null) {
+                return LoginResponseDTO.builder()
+                        .success(false)
+                        .message("User not found.")
+                        .build();
+            }
+
+            long remainingValidity = jwtTokenService.getRemainingValidity(refreshToken);
+            if (remainingValidity > 0) {
+                tokenBlacklistService.blacklist(refreshToken, Duration.ofMillis(remainingValidity));
+            }
+
+            return LoginResponseDTO.builder()
+                    .success(true)
+                    .message("Token refreshed successfully.")
+                    .userId(userId)
+                    .user(userDTO)
+                    .token(jwtTokenService.generateAccessToken(userId, email))
+                    .refreshToken(jwtTokenService.generateRefreshToken(userId, email))
+                    .build();
+        } catch (Exception e) {
+            logger.warn("Refresh token failed: {}", e.getMessage());
+            return LoginResponseDTO.builder()
+                    .success(false)
+                    .message("Invalid refresh token.")
+                    .build();
+        }
+    }
+
+    public LogoutResponseDTO logoutUser(String authHeader, LogoutRequestDTO request) {
 
         if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
+            if (!isBlank(request == null ? null : request.getRefreshToken())) {
+                blacklistRefreshToken(request);
+                return LogoutResponseDTO.builder()
+                        .success(true)
+                        .message("User logged out successfully")
+                        .build();
+            }
             return LogoutResponseDTO.builder()
                     .success(false)
                     .message("Invalid authorization header")
@@ -148,6 +215,7 @@ public class UserService {
                         .build();
             }
             tokenBlacklistService.blacklist(token, Duration.ofMillis(remainingValidity));
+            blacklistRefreshToken(request);
 
             return LogoutResponseDTO.builder()
                     .success(true)
@@ -155,6 +223,7 @@ public class UserService {
                     .build();
 
         } catch (ExpiredJwtException e) {
+            blacklistRefreshToken(request);
 
             return LogoutResponseDTO.builder()
                     .success(true)
@@ -168,6 +237,22 @@ public class UserService {
                     .success(false)
                     .message("Logout failed")
                     .build();
+        }
+    }
+
+    private void blacklistRefreshToken(LogoutRequestDTO request) {
+        String refreshToken = request == null ? null : request.getRefreshToken();
+        if (isBlank(refreshToken)) {
+            return;
+        }
+
+        try {
+            long remainingValidity = jwtTokenService.getRemainingValidity(refreshToken);
+            if (remainingValidity > 0) {
+                tokenBlacklistService.blacklist(refreshToken, Duration.ofMillis(remainingValidity));
+            }
+        } catch (Exception e) {
+            logger.warn("Could not blacklist refresh token: {}", e.getMessage());
         }
     }
 

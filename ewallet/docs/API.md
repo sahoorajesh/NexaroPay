@@ -63,6 +63,92 @@ curl:
 curl "http://localhost:8091/user-service/user-details/1"
 ```
 
+### Login
+
+`POST /user-service/login`
+
+Request body (JSON) (`LoginRequestDTO`):
+```json
+{
+  "email": "rajesh@example.com",
+  "kyc": "KYC123456"
+}
+```
+
+Response:
+`200 OK` (`LoginResponseDTO`)
+```json
+{
+  "success": true,
+  "message": "Login successful.",
+  "userId": 1,
+  "user": {
+    "name": "Rajesh Kumar",
+    "email": "rajesh@example.com",
+    "phone": "9999999999",
+    "kycNumber": "KYC123456"
+  },
+  "token": "<access-token>",
+  "refreshToken": "<refresh-token>"
+}
+```
+
+### Refresh Token
+
+`POST /user-service/refresh-token`
+
+Request body (JSON) (`RefreshTokenRequestDTO`):
+```json
+{
+  "refreshToken": "<refresh-token>"
+}
+```
+
+Response:
+`200 OK` (`LoginResponseDTO`)
+```json
+{
+  "success": true,
+  "message": "Token refreshed successfully.",
+  "userId": 1,
+  "user": {
+    "name": "Rajesh Kumar",
+    "email": "rajesh@example.com",
+    "phone": "9999999999",
+    "kycNumber": "KYC123456"
+  },
+  "token": "<new-access-token>",
+  "refreshToken": "<new-refresh-token>"
+}
+```
+
+Notes:
+- Access tokens are used in `Authorization: Bearer <access-token>`.
+- Refresh tokens are rotated on every refresh; the old refresh token is blacklisted.
+
+### Logout
+
+`POST /user-service/logout`
+
+Headers:
+- `Authorization: Bearer <access-token>` if available
+
+Request body (JSON) (`LogoutRequestDTO`):
+```json
+{
+  "refreshToken": "<refresh-token>"
+}
+```
+
+Response:
+`200 OK` (`LogoutResponseDTO`)
+```json
+{
+  "success": true,
+  "message": "User logged out successfully"
+}
+```
+
 ## Wallet Service (port 8092)
 
 Base URL: `http://localhost:8092`

@@ -1,4 +1,4 @@
-import {readAuth} from "../auth/session.js";
+import {clearAuth, readAuth, writeAuth} from "../auth/session.js";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "/api";
 
@@ -12,7 +12,47 @@ function friendlyMessage(status) {
     return "Something went wrong. Please try again.";
 }
 
-export async function jsonFetch(path, {method = "GET", headers, body} = {}) {
+async function parseResponse(res) {
+    const contentType = res.headers.get("content-type") || "";
+    const isJson = contentType.includes("application/json");
+    return isJson ? await res.json().catch(() => null) : await res.text().catch(() => "");
+}
+
+async function refreshSession() {
+    const auth = readAuth();
+    if (!auth?.refreshToken) return null;
+
+    let res;
+    try {
+        res = await fetch(`${API_BASE}/user-service/refresh-token`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({refreshToken: auth.refreshToken}),
+        });
+    } catch {
+        return null;
+    }
+
+    const data = await parseResponse(res);
+    if (!res.ok || !data?.token || !data?.refreshToken) {
+        clearAuth();
+        return null;
+    }
+
+    const nextAuth = {
+        ...auth,
+        userId: data.userId ?? auth.userId,
+        user: data.user ?? auth.user,
+        token: data.token,
+        refreshToken: data.refreshToken,
+    };
+    writeAuth(nextAuth);
+    return nextAuth;
+}
+
+export async function jsonFetch(path, {method = "GET", headers, body, retryOnUnauthorized = true} = {}) {
     let res;
     const auth = readAuth();
     try {
@@ -30,9 +70,14 @@ export async function jsonFetch(path, {method = "GET", headers, body} = {}) {
         throw new Error("We could not reach NexaroPay services. Check your connection and try again.");
     }
 
-    const contentType = res.headers.get("content-type") || "";
-    const isJson = contentType.includes("application/json");
-    const data = isJson ? await res.json().catch(() => null) : await res.text().catch(() => "");
+    let data = await parseResponse(res);
+
+    if ((res.status === 401 || res.status === 403) && retryOnUnauthorized && path !== "/user-service/refresh-token") {
+        const refreshedAuth = await refreshSession();
+        if (refreshedAuth?.token) {
+            return jsonFetch(path, {method, headers, body, retryOnUnauthorized: false});
+        }
+    }
 
     if (!res.ok) {
         throw new Error(friendlyMessage(res.status));

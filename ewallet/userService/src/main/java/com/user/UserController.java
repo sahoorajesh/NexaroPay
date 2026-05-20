@@ -2,12 +2,13 @@ package com.user;
 
 import com.user.dto.LoginRequestDTO;
 import com.user.dto.LoginResponseDTO;
+import com.user.dto.LogoutRequestDTO;
 import com.user.dto.LogoutResponseDTO;
+import com.user.dto.RefreshTokenRequestDTO;
 import com.user.dto.UserDTO;
 import com.user.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -33,7 +34,7 @@ public class UserController {
     }
 
     @GetMapping("/user-details/{userId}")
-    public UserDTO getUserDetails(@PathVariable Long userId) throws ExecutionException, InterruptedException {
+    public UserDTO getUserDetails(@PathVariable Long userId){
         logger.info("getUserDetails for userId = {}" , userId);
         return userService.getUserDetails(userId);
     }
@@ -53,16 +54,29 @@ public class UserController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<LogoutResponseDTO> logout( @RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity<LogoutResponseDTO> logout(
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestBody(required = false) LogoutRequestDTO request
+    ) {
 
         logger.info("Entered logout");
 
-        LogoutResponseDTO response = userService.logoutUser(authHeader);
+        LogoutResponseDTO response = userService.logoutUser(authHeader, request);
 
         if (response.isSuccess()) {
             return ResponseEntity.ok(response);
         }
 
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    }
+
+    @PostMapping("/refresh-token")
+    public ResponseEntity<LoginResponseDTO> refreshToken(@RequestBody RefreshTokenRequestDTO request) {
+        logger.info("refresh token request");
+        LoginResponseDTO response = userService.refreshToken(request);
+        if (response.isSuccess()) {
+            return ResponseEntity.ok(response);
+        }
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
     }
 }

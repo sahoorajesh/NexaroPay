@@ -15,5 +15,6 @@ public class LoginResponseDTO {
     private Long userId;
     private UserDTO user;
     private String token;
+    private String refreshToken;
 }
 
