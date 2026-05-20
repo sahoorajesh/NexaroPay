@@ -2,6 +2,7 @@ package com.user;
 
 import com.user.dto.LoginRequestDTO;
 import com.user.dto.LoginResponseDTO;
+import com.user.dto.LogoutResponseDTO;
 import com.user.dto.UserDTO;
 import com.user.service.UserService;
 import org.slf4j.Logger;
@@ -19,8 +20,11 @@ public class UserController {
 
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
-    @Autowired
-    private UserService userService;
+    private final UserService userService;
+
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
 
     @PostMapping("/user")
     public long createUser(@RequestBody UserDTO userDTO) throws ExecutionException, InterruptedException {
@@ -46,5 +50,19 @@ public class UserController {
                 ? HttpStatus.BAD_REQUEST
                 : HttpStatus.UNAUTHORIZED;
         return ResponseEntity.status(status).body(response);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<LogoutResponseDTO> logout( @RequestHeader("Authorization") String authHeader) {
+
+        logger.info("Entered logout");
+
+        LogoutResponseDTO response = userService.logoutUser(authHeader);
+
+        if (response.isSuccess()) {
+            return ResponseEntity.ok(response);
+        }
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
     }
 }

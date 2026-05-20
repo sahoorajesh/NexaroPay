@@ -2,6 +2,7 @@ package com.user.service;
 
 import com.user.dto.LoginRequestDTO;
 import com.user.dto.LoginResponseDTO;
+import com.user.dto.LogoutResponseDTO;
 import com.user.dto.UserDTO;
 import com.user.entity.User;
 import com.user.repository.UserRepository;
@@ -36,6 +37,8 @@ public class UserService {
 
     @Value("${user.created.topic}")
     private String userCreatedTopic;
+
+    private static final String BEARER_PREFIX = "Bearer ";
 
     public UserService(RedisTemplate<String, UserDTO> redisTemplate, UserRepository userRepository, KafkaTemplate<String, Object> kafkaTemplate, JWTUtil jwtUtil) {
         this.redisTemplate = redisTemplate;
@@ -87,19 +90,6 @@ public class UserService {
                         .build());
     }
 
-    private static boolean isBlank(String s) {
-        return s == null || s.trim().isEmpty();
-    }
-
-    private static UserDTO toUserDTO(User user) {
-        UserDTO userDTO = new UserDTO();
-        userDTO.setEmail(user.getEmail());
-        userDTO.setName(user.getName());
-        userDTO.setPhone(user.getPhone());
-        userDTO.setKycNumber(user.getKycNumber());
-        return userDTO;
-    }
-
     @Transactional
     public long createUser(UserDTO userDTO) throws ExecutionException, InterruptedException {
 
@@ -126,5 +116,64 @@ public class UserService {
         logger.info("Putting data in Redis");
         redisTemplate.opsForValue().set(key,userDTO);
         return user.getId();
+    }
+
+    public LogoutResponseDTO logoutUser(String authHeader) {
+
+        if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
+            return LogoutResponseDTO.builder()
+                    .success(false)
+                    .message("Invalid authorization header")
+                    .build();
+        }
+
+        try {
+
+            String token = authHeader.substring(BEARER_PREFIX.length());
+
+            long remainingValidity = jwtUtil.getRemainingValidity(token);
+
+            // Token already expired then treat as logged out
+            if (remainingValidity <= 0) {
+
+                return LogoutResponseDTO.builder()
+                        .success(true)
+                        .message("User already logged out")
+                        .build();
+            }
+            return LogoutResponseDTO.builder()
+                    .success(true)
+                    .message("User logged out successfully")
+                    .build();
+
+        } catch (io.jsonwebtoken.ExpiredJwtException e) {
+
+            return LogoutResponseDTO.builder()
+                    .success(true)
+                    .message("User already logged out")
+                    .build();
+
+        } catch (Exception e) {
+
+            logger.error("Logout failed", e);
+            return LogoutResponseDTO.builder()
+                    .success(false)
+                    .message("Logout failed")
+                    .build();
+        }
+    }
+
+
+    private static boolean isBlank(String s) {
+        return s == null || s.trim().isEmpty();
+    }
+
+    private static UserDTO toUserDTO(User user) {
+        UserDTO userDTO = new UserDTO();
+        userDTO.setEmail(user.getEmail());
+        userDTO.setName(user.getName());
+        userDTO.setPhone(user.getPhone());
+        userDTO.setKycNumber(user.getKycNumber());
+        return userDTO;
     }
 }

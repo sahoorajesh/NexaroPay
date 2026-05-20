@@ -3,6 +3,7 @@ package com.user.config;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -16,8 +17,12 @@ public class JWTUtil {
     @Value("${jwt.secret}")
     private String SECRET;
 
-    private final SecretKey key = Keys.hmacShaKeyFor( SECRET.getBytes(StandardCharsets.UTF_8) );
+    private SecretKey key;
 
+    @PostConstruct
+    public void init() {
+        key = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
+    }
     public String generateToken(Long userId, String email) {
 
         return Jwts.builder().subject(email)
@@ -52,5 +57,22 @@ public class JWTUtil {
     public String extractEmail(String token) {
 
         return validateToken(token).getSubject();
+    }
+
+    public Date extractExpiration(String token) {
+
+        return validateToken(token).getExpiration();
+    }
+
+    public long getRemainingValidity(String token) {
+
+        Date expiration = extractExpiration(token);
+
+        return expiration.getTime() - System.currentTimeMillis();
+    }
+
+    public boolean isExpired(String token) {
+
+        return extractExpiration(token).before(new Date());
     }
 }
