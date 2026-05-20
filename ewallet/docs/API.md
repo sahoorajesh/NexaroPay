@@ -262,6 +262,32 @@ curl:
 curl "http://localhost:8094/transaction-service/users/1/transactions?page=0&size=10"
 ```
 
+### Monthly Wallet Analysis
+
+`GET /transaction-service/users/{userId}/monthly-analysis`
+
+Calculates successful debit and credit totals from the start of the current month through the end of the current month.
+
+Path params:
+- `userId` (number)
+
+Response:
+`200 OK` (`MonthlyWalletAnalysisDTO`)
+```json
+{
+  "hasTransactions": true,
+  "totalSpentThisMonth": 150.0,
+  "totalReceivedThisMonth": 250.0,
+  "periodStart": "2026-05-01T00:00:00+05:30",
+  "periodEnd": "2026-05-31T23:59:59.999999999+05:30"
+}
+```
+
+curl:
+```bash
+curl "http://localhost:8094/transaction-service/users/1/monthly-analysis"
+```
+
 ## Payment Gateway Service (port 9090)
 
 Base URL: `http://localhost:9090`

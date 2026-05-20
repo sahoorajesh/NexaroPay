@@ -1,5 +1,6 @@
 package com.transaction.service;
 
+import com.transaction.dto.MonthlyWalletAnalysisDTO;
 import com.transaction.dto.TransactionListItemDTO;
 import com.transaction.dto.TransactionRequestDTO;
 import com.transaction.dto.TransactionStatusDTO;
@@ -20,6 +21,8 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Service;
 
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -90,6 +93,47 @@ public class TransactionService {
         return transactionRepository
                 .findByFromUserIdOrToUserId(userId, userId, pageRequest)
                 .map(this::toListItem);
+    }
+
+    public MonthlyWalletAnalysisDTO getMonthlyAnalysis(Long userId) {
+        ZoneId zoneId = ZoneId.systemDefault();
+        OffsetDateTime periodStart = OffsetDateTime.now(zoneId)
+                .withDayOfMonth(1)
+                .toLocalDate()
+                .atStartOfDay(zoneId)
+                .toOffsetDateTime();
+        OffsetDateTime periodEnd = periodStart.plusMonths(1);
+
+        boolean hasTransactions = transactionRepository.existsByFromUserIdOrToUserId(userId, userId);
+        double spent = 0D;
+        double received = 0D;
+
+        for (Transaction txn : transactionRepository.findByFromUserIdAndTxnCreatedDateGreaterThanEqualAndTxnCreatedDateLessThanOrToUserIdAndTxnCreatedDateGreaterThanEqualAndTxnCreatedDateLessThan(
+                userId,
+                periodStart,
+                periodEnd,
+                userId,
+                periodStart,
+                periodEnd
+        )) {
+            if (txn.getStatus() != TransactionStatusEnum.SUCCESS || txn.getAmount() == null) {
+                continue;
+            }
+            if (userId.equals(txn.getFromUserId())) {
+                spent += txn.getAmount();
+            }
+            if (userId.equals(txn.getToUserId())) {
+                received += txn.getAmount();
+            }
+        }
+
+        return MonthlyWalletAnalysisDTO.builder()
+                .hasTransactions(hasTransactions)
+                .totalSpentThisMonth(spent)
+                .totalReceivedThisMonth(received)
+                .periodStart(periodStart)
+                .periodEnd(periodEnd.minusNanos(1))
+                .build();
     }
 
     private TransactionListItemDTO toListItem(Transaction txn) {

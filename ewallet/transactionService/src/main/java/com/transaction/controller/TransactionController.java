@@ -1,5 +1,6 @@
 package com.transaction.controller;
 
+import com.transaction.dto.MonthlyWalletAnalysisDTO;
 import com.transaction.dto.TransactionListItemDTO;
 import com.transaction.dto.TransactionRequestDTO;
 import com.transaction.dto.TransactionStatusDTO;
@@ -47,5 +48,11 @@ public class TransactionController {
     ) {
         LOGGER.info("listing transactions for userId: {}, page: {}, size: {}", userId, page, size);
         return ResponseEntity.ok(transactionService.getTransactionsForUser(userId, page, size));
+    }
+
+    @GetMapping("/users/{userId}/monthly-analysis")
+    public ResponseEntity<MonthlyWalletAnalysisDTO> getMonthlyAnalysis(@PathVariable Long userId) {
+        LOGGER.info("getting monthly transaction analysis for userId: {}", userId);
+        return ResponseEntity.ok(transactionService.getMonthlyAnalysis(userId));
     }
 }

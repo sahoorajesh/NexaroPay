@@ -19,3 +19,7 @@ export function listUserTransactions(userId, { page = 0, size = 10 } = {}) {
   return jsonFetch(`/transaction-service/users/${encodeURIComponent(String(userId))}/transactions?${q.toString()}`);
 }
 
+export function getMonthlyWalletAnalysis(userId) {
+  return jsonFetch(`/transaction-service/users/${encodeURIComponent(String(userId))}/monthly-analysis`);
+}
+
